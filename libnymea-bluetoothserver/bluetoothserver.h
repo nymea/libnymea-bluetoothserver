@@ -101,8 +101,8 @@ private:
     QLowEnergyService *m_deviceInfoService = nullptr;
     QLowEnergyService *m_genericAccessService = nullptr;
     QLowEnergyService *m_genericAttributeService = nullptr;
-    QLowEnergyService *m_encryptionService = nullptr;
 
+    EncryptionService *m_encryptionService = nullptr;
     NetworkService *m_networkService = nullptr;
     WirelessService *m_wirelessService = nullptr;
 

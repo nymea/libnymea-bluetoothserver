@@ -32,6 +32,7 @@
 #include "loggingcategories.h"
 
 #include <sodium.h>
+#include <QCryptographicHash>
 
 EncryptionHandler::EncryptionHandler(QObject *parent) : QObject(parent)
 {
@@ -61,6 +62,8 @@ void EncryptionHandler::reset()
     m_publicKey.clear();
     m_sharedKey.clear();
     m_clientPublicKey.clear();
+    m_challenge.clear();
+    m_challengeConfirmation.clear();
     setReady(false);
 }
 
@@ -84,8 +87,15 @@ bool EncryptionHandler::generateKeyPair()
 
 bool EncryptionHandler::calculateSharedKey(const QByteArray &clientPublicKey)
 {
-    if (!m_initialized || m_publicKey.isEmpty() || m_privateKey.isEmpty())
+    if (!m_initialized)
         return false;
+
+    if (m_publicKey.isEmpty() || m_privateKey.isEmpty()) {
+        if (!generateKeyPair()) {
+            qCWarning(dcNymeaBluetoothServerEncryption()) << "Failed to generate key pair.";
+            return false;
+        }
+    }
 
     m_clientPublicKey = clientPublicKey;
 
@@ -101,10 +111,31 @@ bool EncryptionHandler::calculateSharedKey(const QByteArray &clientPublicKey)
     Q_ASSERT_X(m_sharedKey.length() == 32, "data length", "The shared key does not have the correct length.");
     qCDebug(dcNymeaBluetoothServerEncryption()) << "Shared key:" << m_sharedKey.toHex();
 
-    qCDebug(dcNymeaBluetoothServerEncryption()) << "Encryption is ready for this client.";
-    setReady(true);
-
     return true;
+}
+
+QByteArray EncryptionHandler::publicKey() const
+{
+    return m_publicKey;
+}
+
+QByteArray EncryptionHandler::generateChallenge()
+{
+    m_challenge = generateNonce();
+
+    // Calculate sha3-256 from challenge for verification
+    m_challengeConfirmation = QCryptographicHash::hash(m_challenge, QCryptographicHash::Sha3_256);
+    return m_challenge;
+}
+
+bool EncryptionHandler::verifyChallenge(const QByteArray challengeConfirmation)
+{
+    if (m_challengeConfirmation == challengeConfirmation) {
+        setReady(true);
+        return true;
+    }
+
+    return false;
 }
 
 QByteArray EncryptionHandler::encryptData(const QByteArray &data, const QByteArray &nonce)

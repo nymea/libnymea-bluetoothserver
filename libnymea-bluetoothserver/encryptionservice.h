@@ -28,52 +28,57 @@
 *
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-#include "encryptionservice.h"
-#include "loggingcategories.h"
+#ifndef ENCRYPTIONSERVICE_H
+#define ENCRYPTIONSERVICE_H
 
-#include "bluetoothuuids.h"
-#include <QLowEnergyDescriptorData>
-#include <QLowEnergyCharacteristicData>
+#include <QObject>
+#include <QLowEnergyService>
 
-EncryptionService::EncryptionService(EncryptionHandler *encryptionHandler, QObject *parent) :
-    BluetoothService(parent),
-    m_encryptionHandler(encryptionHandler)
+#include "bluetoothservice.h"
+#include "encryptionhandler.h"
+
+class EncryptionService : public BluetoothService
 {
+    Q_OBJECT
+public:
+    enum Method {
+        MethodUnknown = -1,
+        MethodInitiateEncryption = 0,
+        MethodConfirmChallenge = 1
+    };
+    Q_ENUM(Method)
 
-}
+    enum ResponseCode {
+        ResponseCodeSuccess = 0,
+        ResponseCodeInvalidProtocol = 1,
+        ResponseCodeInvalidMethod = 2,
+        ResponseCodeInvalidParams = 3,
+        ResponseCodeInvalidKeyFormat = 4,
+        ResponseCodeAlreadyEncrypted = 5,
+        ResponseCodeEncryptionFailed = 6
+    };
+    Q_ENUM(ResponseCode)
 
-EncryptionService::~EncryptionService()
-{
+    explicit EncryptionService(EncryptionHandler *encryptionHandler, QObject *parent = nullptr);
+    ~EncryptionService() override;
 
-}
+    QString name() const override;
+    QBluetoothUuid serviceUuid() const override;
+    QBluetoothUuid receiverCharacteristicUuid() const override;
+    QBluetoothUuid senderCharacteristicUuid() const override;
+    bool useEncryption() const override;
 
-QString EncryptionService::name() const
-{
-    return "Encryption";
-}
+public slots:
+    void receiveData(const QByteArray &data) override;
 
-QBluetoothUuid EncryptionService::serviceUuid() const
-{
-    return QBluetoothUuid(QUuid("56c8ae10-def5-4d9c-8233-795a32d01cd2"));
-}
+private:
+    EncryptionHandler *m_encryptionHandler = nullptr;
 
-QBluetoothUuid EncryptionService::receiverCharacteristicUuid() const
-{
-    return QBluetoothUuid(QUuid("56c8ae11-def5-4d9c-8233-795a32d01cd2"));
-}
+    void processRequest(Method method, const QVariantMap &params = QVariantMap());
+    void sendResponse(int method, ResponseCode responseCode = ResponseCodeSuccess, const QVariantMap &responseParams = QVariantMap());
 
-QBluetoothUuid EncryptionService::senderCharacteristicUuid() const
-{
-    return QBluetoothUuid(QUuid("56c8ae12-def5-4d9c-8233-795a32d01cd2"));
-}
 
-bool EncryptionService::useEncryption() const
-{
-    return false;
-}
 
-void EncryptionService::receiveData(const QByteArray &data)
-{
-    qCDebug(dcNymeaBluetoothServer()) << name() << "message received" << qUtf8Printable(data);
+};
 
-}
+#endif // ENCRYPTIONSERVICE_H

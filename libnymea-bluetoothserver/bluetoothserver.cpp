@@ -42,9 +42,13 @@ BluetoothServer::BluetoothServer(QObject *parent) :
     QObject(parent)
 {
     m_encryptionHandler = new EncryptionHandler(this);
+
+    // Debug
     m_encryptionHandler->generateKeyPair();
     qCDebug(dcNymeaBluetoothServer()) << "Nonce:" << m_encryptionHandler->generateNonce().toHex();
-    registerService(new EncryptionService(m_encryptionHandler, this));
+
+    m_encryptionService = new EncryptionService(m_encryptionHandler, this);
+    registerService(m_encryptionService);
 }
 
 BluetoothServer::~BluetoothServer()
@@ -486,12 +490,9 @@ void BluetoothServer::start()
     m_genericAttributeService = m_controller->addService(genericAttributeServiceData(), m_controller);
     m_serviceUuids.append(genericAttributeServiceData().uuid());
 
-    // Encryption service
-    //m_encryptionService = m_controller->addService()
-
     // Add all registered generic services
     foreach (BluetoothService *bluetoothService, m_registeredServices) {
-        // Create service data
+        qCDebug(dcNymeaBluetoothServer()) << "Register service" << bluetoothService->name() << bluetoothService->serviceUuid().toString();
         QLowEnergyServiceData serviceData;
         serviceData.setType(QLowEnergyServiceData::ServiceTypePrimary);
         serviceData.setUuid(bluetoothService->serviceUuid());
@@ -499,7 +500,7 @@ void BluetoothServer::start()
         QLowEnergyCharacteristicData receiverCharacteristicData;
         receiverCharacteristicData.setUuid(bluetoothService->receiverCharacteristicUuid());
         receiverCharacteristicData.setProperties(QLowEnergyCharacteristic::Write);
-        receiverCharacteristicData.setValueLength(0, 20);
+        receiverCharacteristicData.setValueLength(1, 20);
         serviceData.addCharacteristic(receiverCharacteristicData);
 
         // Sender characteristic
@@ -507,7 +508,7 @@ void BluetoothServer::start()
         senderCharacteristicData.setUuid(bluetoothService->senderCharacteristicUuid());
         senderCharacteristicData.setProperties(QLowEnergyCharacteristic::Notify);
         senderCharacteristicData.addDescriptor(QLowEnergyDescriptorData(QBluetoothUuid::ClientCharacteristicConfiguration, QByteArray(2, 0)));
-        senderCharacteristicData.setValueLength(0, 20);
+        senderCharacteristicData.setValueLength(1, 20);
         serviceData.addCharacteristic(senderCharacteristicData);
 
         QLowEnergyService *service = m_controller->addService(serviceData, m_controller);
@@ -523,7 +524,7 @@ void BluetoothServer::start()
     advertisingData.setDiscoverability(QLowEnergyAdvertisingData::DiscoverabilityGeneral);
     advertisingData.setIncludePowerLevel(true);
     advertisingData.setLocalName(m_advertiseName);
-    advertisingData.setServices(m_serviceUuids);
+    advertisingData.setServices({m_encryptionService->serviceUuid()});
     // FIXME: set nymea manufacturer SIG data once available
 
     // Note: advertise in 100 ms interval, this makes the device better discoverable on certain client devices
@@ -532,6 +533,7 @@ void BluetoothServer::start()
 
     qCDebug(dcNymeaBluetoothServer()) << "Start advertising" << m_advertiseName << m_localDevice->address().toString();
     m_controller->startAdvertising(advertisingParameters, advertisingData, advertisingData);
+
     // Note: setRunning(true) will be called when the service is really advertising, see onControllerStateChanged()
 }
 

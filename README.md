@@ -137,55 +137,58 @@ client->nymea-networkmanager: Bluetooth.enableNotifications(senderCharacteristc)
 
 note over client, nymea-networkmanager: Bluetooth connection ready
 note over client: Generate EC key pair
-client->nymea-networkmanager: ExchangePublicKey\n(client public key)
+
+client->nymea-networkmanager: InitiateEncryption\n(client public key)
 note over nymea-networkmanager: Generate EC key pair
-nymea-networkmanager->client: ExchangePublicKey response\n(server public key) 
+note over nymea-networkmanager: Calculate shared key
+note over nymea-networkmanager: Generate challenge and\nencrypt data.
+nymea-networkmanager->client: Response InitiateEncryption \n(server public key, nonce, encrypted challenge) 
 
-note over client, nymea-networkmanager: Calculate shared key using the own private\n key and the others public key.
 
-note over nymea-networkmanager: Generate challenge and\nencrypt data. 
-
-nymea-networkmanager->client: Challange
+note over client: Calculate shared key\nusing server public key
 note over client: Decrypt challenge data
 note over client: Calculate SHA3-256\nfrom challenge data
 note over client: Encrypt hash
-client->nymea-networkmanager: ConfirmChallenge
-nymea-networkmanager->client: ConfirmChallenge response
+client->nymea-networkmanager: ConfirmChallenge(encrypted hash)
+nymea-networkmanager->client: Response ConfirmChallenge
 
 -->
 
-![Encryption flow](docs/encryption-flow.png)
+![Encryption flow](docs/encryption-flow.svg)
 
 
-### Error codes
+### Response codes
 
 | Value  | Name              | Description
 | ------ | ----------------- | ----------------------------------------------------
 | `0`    | Success           | The request has been successfull. No error occured.
-| `1`    | InvalidKey        | The given key has not the correct size.
-| `2`    | AlreadyEncrypted  | There has already been established an encryption for this session.
-| `3`    | EncryptionFailed  | The challange has not been decrypted correctly.
+| `1`    | InvalidProtocol   | The data could not be processed according to the protocol.
+| `2`    | InvalidMethod     | The sent method does not exist on this service.
+| `3`    | InvalidParams     | The sent params are incomplete or wrong formated.
+| `4`    | InvalidKeyFormat  | The given key has not the correct size or format.
+| `5`    | AlreadyEncrypted  | There has already been established an encryption for this session.
+| `6`    | EncryptionFailed  | The challange has not been decrypted correctly.
 
 
 ### Methods
 
-| Value  | Name              | Description
-| ------ | ----------------- | ----------------------------------------------------
-| `0`    | ExchangePublicKey | Get the public key from the server and send the own public key along for creating a shared key.
-| `1`    | ConfirmChallenge  | This method can be used to confirm the data from the challenge notification. The response informs about the success of the encryption.
+| Value  | Name               | Description
+| ------ | ------------------ | ----------------------------------------------------
+| `-1`   | Unknown            | This method will be returned if the data could not be parsed and the command is unknown. Used only in responses.
+| `0`    | InitiateEncryption | Send public key to the server and receive the server public key back along with an encrypted challenge.
+| `1`    | ConfirmChallenge   | Confirm the challenge data. The response informs about the success of the encryption.
 
 
 #### ExchangePublicKey
 
-Before using this method, the client has to generate an ECDH key pair. The key pair consists out of a public key and private key. The private key must *always* be kept secret, the public key must be sent to the server using this method.
-
+Before using this method, the client has to generate an ECDH key pair. The key pair consists out of a public key and private key. The private key must *always* be kept secret, the public key has to be sent to the server using this method.
 
 Example request:
 
                   {
                       "c": 0,
                       "p": {
-                          "pk": "bcd6c5c7600ed3a05cd8f899b7fe4d0cb4351d542ff5f12dbf24d00f6220986c"      // Public key from the client
+                          "pk": "bcd6c5c7600ed3a05cd8f899b7fe4d0cb4351d542ff5f12dbf24d00f6220986c"      // Public key from the client as hex string
                       }
                   }
 
@@ -195,14 +198,16 @@ Example response:
                       "c": 0,
                       "r": 0,
                       "p": {
-                          "pk": "1dc9bf0f1ef881ce38cb5189c21131a2309a07a27307687c59fa73f8c155011f"      // Public key from the server
+                          "pk": "1dc9bf0f1ef881ce38cb5189c21131a2309a07a27307687c59fa73f8c155011f",   // Public key from the server as hex string
+                          "n": "181fbd161c855876bad7ea8746c24e55dcb637c43882fc4df78fac9ce3951055",   // Nonce used for the challenge encryption (32 bytes random data) as hex string.
+                          "c": "6f83ab2ce88378..." // Encrypted challenge data as hex string.
                       }
                   }
 
 
 #### ConfirmChallenge
 
-Right after the key exchange, the server will send a challenge notification containing encrypted data. Once the client receives that notification, the encrypted data will be decrypted using the sent nonce. The client will than calculate a SHA3-256 hash from the received content. The resulting hash will than be encrypted and send backt to the server using this method. The server will decrypt the the message, verify the SHA3-245 checksum form the challenge data. If everything is on, the encryption has been established successfully and all communication on the custom services can be used with encryption from this point on. If the encryption did not work for any reason, the client will be disconnected and the session is closed. 
+Right after the key exchange, the server will send a `Challenge` notification containing encrypted data. Once the client receives that notification, the encrypted data will be decrypted using the sent nonce. The client will than calculate a SHA3-256 hash from the received content. The resulting hash will than be encrypted and send backt to the server using this method. The server will decrypt the the message, verify the SHA3-245 checksum form the challenge data. If everything is on, the encryption has been established successfully and all communication on the custom services can be used with encryption from this point on. If the encryption did not work for any reason, the client will be disconnected and the session is closed.
 
 
 Example request:
@@ -210,8 +215,8 @@ Example request:
                   {
                       "c": 1,
                        "p": {
-                          "n": "cdd6a71211e4ababecd716f761138ff39ead5797db38e26ed52a4cfedcb73b97",
-                          "c": "1dc9bf0f1ef881ce38cb5189c21131a2309a07a27307687c59fa73f8c155011fb970fbf79a19075259422573a72580"      // Encrypted SHA3-256 challange data
+                          "n": "cdd6a71211e4ababecd716f761138ff39ead5797db38e26ed52a4cfedcb73b97",  // Nonce used for the encryption (32 bytes random data) as hex string.
+                          "c": "1dc9bf0f1e..."  // Encrypted SHA3-256 challange data  as hex string
                       }
                   }
 
@@ -219,33 +224,15 @@ Example response:
 
                   {
                       "c": 1,
-                      "r": 0        // Error code. If success, the encrytion is established. If not, the client will be disconnected.
+                      "r": 0        // Response code. If success, the encrytion is established. If not, the client will be disconnected after the error massage has been sent.
                   }
 
 
 
 
 
-### Notifications
-
-| Value  | Name               | Description
-| ------ | ------------------ | ----------------------------------------------------
-| `1`    | Challenge          | This notification will be sent after the key exchange in order to test the encryption.
 
 
-#### Challenge
-
-The challange notification will be sent right after the key exchange. The parameter property `c` contains an encrypted message using the nonce `n`. The challange content has to be decryted, than a SHA3-256 has has to be calculated from it and then send back to erver using the `ConfirmChallenge` method.
-
-Example notification:
-
-                  {
-                      "n": 0,
-                      "p": {
-                          "n": "181fbd161c855876bad7ea8746c24e55dcb637c43882fc4df78fac9ce3951055",     // Nonce for the encryption (32 bytes random data used to encrypt the data). Never use a nonce twice.
-                          "c": "6f83ab2ce8837812fc4222bb963eb76ac3bb4e6fcce8c668e4f7f390d65f9ce666c47159dc15000cc4daee1a13c27a37ca"      // Encrypted challenge content.
-                      }
-                  }
 
 
 

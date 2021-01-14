@@ -28,37 +28,51 @@
 *
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-#ifndef ENCRYPTIONSERVICE_H
-#define ENCRYPTIONSERVICE_H
+#ifndef ENCRYPTIONHANDLER_H
+#define ENCRYPTIONHANDLER_H
 
 #include <QObject>
-#include <QLowEnergyService>
 
-#include "bluetoothservice.h"
-#include "encryptionhandler.h"
-
-class EncryptionService : public BluetoothService
+class EncryptionHandler : public QObject
 {
     Q_OBJECT
 public:
-    explicit EncryptionService(EncryptionHandler *encryptionHandler, QObject *parent = nullptr);
-    ~EncryptionService() override;
+    explicit EncryptionHandler(QObject *parent = nullptr);
 
-    QString name() const override;
-    QBluetoothUuid serviceUuid() const override;
-    QBluetoothUuid receiverCharacteristicUuid() const override;
-    QBluetoothUuid senderCharacteristicUuid() const override;
-    bool useEncryption() const override;
+    bool initialized() const;
 
-public slots:
-    void receiveData(const QByteArray &data) override;
+    bool ready() const;
+    void reset();
 
+    bool generateKeyPair();
+    bool calculateSharedKey(const QByteArray &clientPublicKey);
+
+    QByteArray publicKey() const;
+    QByteArray generateChallenge();
+    bool verifyChallenge(const QByteArray challengeConfirmation);
+
+    QByteArray encryptData(const QByteArray &data, const QByteArray &nonce);
+    QByteArray decryptData(const QByteArray &data, const QByteArray &nonce);
+
+    QByteArray generateNonce(int length = 32);
 
 private:
-    EncryptionHandler *m_encryptionHandler = nullptr;
+    bool m_ready = false;
+    bool m_initialized = false;
 
-private slots:
+    QByteArray m_privateKey;
+    QByteArray m_publicKey;
+    QByteArray m_sharedKey;
+    QByteArray m_clientPublicKey;
+
+    QByteArray m_challenge;
+    QByteArray m_challengeConfirmation;
+
+    void setReady(bool ready);
+
+signals:
+    void readyChanged(bool ready);
 
 };
 
-#endif // ENCRYPTIONSERVICE_H
+#endif // ENCRYPTIONHANDLER_H

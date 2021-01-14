@@ -1,4 +1,3 @@
-
 QT -= gui
 QT += bluetooth dbus network
 QMAKE_CXXFLAGS *= -Werror -std=c++11 -g
@@ -9,7 +8,6 @@ PKGCONFIG += nymea-networkmanager libsodium
 
 TEMPLATE = lib
 
-VERSION_STRING=$$system('dpkg-parsechangelog | sed -n -e "s/^Version: //p"')
 DEFINES += VERSION_STRING=\\\"$${VERSION_STRING}\\\"
 
 SOURCES += \
