@@ -42,7 +42,7 @@ EncryptionHandler::EncryptionHandler(QObject *parent) : QObject(parent)
     }
 
     m_initialized = true;
-    qCDebug(dcNymeaBluetoothServer()) << "Encryption library initialized successfully: libsodium" << sodium_version_string();
+    qCDebug(dcNymeaBluetoothClient()) << "Encryption library initialized successfully: libsodium" << sodium_version_string();
 }
 
 bool EncryptionHandler::initialized() const

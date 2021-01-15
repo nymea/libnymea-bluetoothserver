@@ -28,22 +28,51 @@
 *
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-#ifndef BLUETOOTHUUIDS_H
-#define BLUETOOTHUUIDS_H
+#ifndef ENCRYPTIONHANDLER_H
+#define ENCRYPTIONHANDLER_H
 
-#include <QBluetoothUuid>
+#include <QObject>
 
-static QBluetoothUuid networkServiceUuid =                  QBluetoothUuid(QUuid("ef6d6610-b8af-49e0-9eca-ab343513641c"));
-static QBluetoothUuid networkStatusCharacteristicUuid =     QBluetoothUuid(QUuid("ef6d6611-b8af-49e0-9eca-ab343513641c"));
-static QBluetoothUuid networkCommanderCharacteristicUuid =  QBluetoothUuid(QUuid("ef6d6612-b8af-49e0-9eca-ab343513641c"));
-static QBluetoothUuid networkResponseCharacteristicUuid =   QBluetoothUuid(QUuid("ef6d6613-b8af-49e0-9eca-ab343513641c"));
-static QBluetoothUuid networkingEnabledCharacteristicUuid = QBluetoothUuid(QUuid("ef6d6614-b8af-49e0-9eca-ab343513641c"));
-static QBluetoothUuid wirelessEnabledCharacteristicUuid =   QBluetoothUuid(QUuid("ef6d6615-b8af-49e0-9eca-ab343513641c"));
+class EncryptionHandler : public QObject
+{
+    Q_OBJECT
+public:
+    explicit EncryptionHandler(QObject *parent = nullptr);
 
-static QBluetoothUuid wirelessServiceUuid =                 QBluetoothUuid(QUuid("e081fec0-f757-4449-b9c9-bfa83133f7fc"));
-static QBluetoothUuid wirelessCommanderCharacteristicUuid = QBluetoothUuid(QUuid("e081fec1-f757-4449-b9c9-bfa83133f7fc"));
-static QBluetoothUuid wirelessResponseCharacteristicUuid =  QBluetoothUuid(QUuid("e081fec2-f757-4449-b9c9-bfa83133f7fc"));
-static QBluetoothUuid wirelessStateCharacteristicUuid =     QBluetoothUuid(QUuid("e081fec3-f757-4449-b9c9-bfa83133f7fc"));
-static QBluetoothUuid wirelessModeCharacteristicUuid =      QBluetoothUuid(QUuid("e081fec4-f757-4449-b9c9-bfa83133f7fc"));
+    bool initialized() const;
 
-#endif // BLUETOOTHUUIDS_H
+    bool ready() const;
+    void reset();
+
+    bool generateKeyPair();
+    bool calculateSharedKey(const QByteArray &clientPublicKey);
+
+    QByteArray publicKey() const;
+    QByteArray generateChallenge();
+    bool verifyChallenge(const QByteArray challengeConfirmation);
+
+    QByteArray encryptData(const QByteArray &data, const QByteArray &nonce);
+    QByteArray decryptData(const QByteArray &data, const QByteArray &nonce);
+
+    QByteArray generateNonce(int length = 32);
+
+private:
+    bool m_ready = false;
+    bool m_initialized = false;
+
+    QByteArray m_privateKey;
+    QByteArray m_publicKey;
+    QByteArray m_sharedKey;
+    QByteArray m_clientPublicKey;
+
+    QByteArray m_challenge;
+    QByteArray m_challengeConfirmation;
+
+    void setReady(bool ready);
+
+signals:
+    void readyChanged(bool ready);
+
+};
+
+#endif // ENCRYPTIONHANDLER_H

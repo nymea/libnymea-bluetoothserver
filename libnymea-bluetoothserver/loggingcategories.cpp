@@ -31,5 +31,5 @@
 #include "loggingcategories.h"
 
 Q_LOGGING_CATEGORY(dcNymeaBluetoothServer, "NymeaBluetoothServer")
+Q_LOGGING_CATEGORY(dcNymeaBluetoothEncryption, "NymeaBluetoothEncryption")
 Q_LOGGING_CATEGORY(dcNymeaBluetoothServerTraffic, "NymeaBluetoothServerTraffic")
-Q_LOGGING_CATEGORY(dcNymeaBluetoothServerEncryption, "NymeaBluetoothServerEncryption")

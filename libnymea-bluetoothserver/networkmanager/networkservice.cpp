@@ -29,7 +29,6 @@
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 #include "networkservice.h"
-#include "bluetoothuuids.h"
 #include "loggingcategories.h"
 
 #include <QLowEnergyDescriptorData>

@@ -34,8 +34,8 @@
 #include <QLoggingCategory>
 
 Q_DECLARE_LOGGING_CATEGORY(dcNymeaBluetoothServer)
+Q_DECLARE_LOGGING_CATEGORY(dcNymeaBluetoothEncryption)
 Q_DECLARE_LOGGING_CATEGORY(dcNymeaBluetoothServerTraffic)
-Q_DECLARE_LOGGING_CATEGORY(dcNymeaBluetoothServerEncryption)
 
 
 #endif // LOGGINGCATEGORIES_H

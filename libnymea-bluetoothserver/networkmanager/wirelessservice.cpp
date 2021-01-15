@@ -29,7 +29,6 @@
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 #include "wirelessservice.h"
-#include "bluetoothuuids.h"
 #include "loggingcategories.h"
 
 #include <QJsonDocument>

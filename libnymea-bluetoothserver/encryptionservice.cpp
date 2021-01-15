@@ -166,7 +166,7 @@ void EncryptionService::processRequest(EncryptionService::Method method, const Q
         // Decrypt the message
         QByteArray challengeConfirmation = m_encryptionHandler->decryptData(encryptedChallengeConfirmation, nonce);
         if (!m_encryptionHandler->verifyChallenge(challengeConfirmation)) {
-            qCWarning(dcNymeaBluetoothServerEncryption()) << "Challenge confirmation does not match the expected value.";
+            qCWarning(dcNymeaBluetoothEncryption()) << "Challenge confirmation does not match the expected value.";
             sendResponse(method, ResponseCodeEncryptionFailed);
             return;
         }

@@ -1,5 +1,8 @@
+TARGET = nymea-bluetoothserver
+
 QT -= gui
 QT += bluetooth dbus network
+
 QMAKE_CXXFLAGS *= -Werror -std=c++11 -g
 QMAKE_LFLAGS *= -std=c++11
 
@@ -24,7 +27,6 @@ HEADERS += \
     bluetoothserver.h \
     bluetoothservice.h \
     bluetoothservicedatahandler.h \
-    bluetoothuuids.h \
     encryptionhandler.h \
     encryptionservice.h \
     loggingcategories.h \
